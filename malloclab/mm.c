@@ -18,21 +18,27 @@
 #include "mm.h"
 #include "memlib.h"
 
+size_t* heap_start;
+
 /*********************************************************
  * NOTE TO STUDENTS: Before you do anything else, please
  * provide your team information in the following struct.
  ********************************************************/
 team_t team = {
     /* Team name */
-    "csoteam",
+    "Innocent Bystanders",
     /* First member's full name */
-    "Jinyang Li",
+    "Muhamed Rahman",
     /* First member's github username*/
-    "jinyangli",
+    "mrahman13",
     /* Second member's full name (leave blank if none) */
-    "",
+    "Erica Chio",
     /* Second member's github username (leave blank if none) */
-    ""
+    "ericachio"
+    /* Third member's full name (leave blank if none) */
+    "Jason Gross"
+    /* Third member's github username (leave blank if none) */
+    "anonymouse123e"
 };
 
 /* 
@@ -40,7 +46,10 @@ team_t team = {
  */
 int mm_init(void)
 {
+    size_t heap_start = 0;
+    //Check to see if there is enough memory space to initialize
     return 0;
+    //return 0;
 }
 
 /* 
@@ -52,7 +61,7 @@ void *mm_malloc(size_t size)
     int newsize = ALIGN(size + SIZE_T_SIZE);
     void *p = mem_sbrk(newsize);
     if (p == (void *)-1)
-	return NULL;
+    return NULL;
     else {
         *(size_t *)p = size;
         return (void *)((char *)p + SIZE_T_SIZE);
@@ -87,9 +96,11 @@ void *mm_realloc(void *ptr, size_t size)
 }
 
 
+
+
 void mm_checkheap(int verbose) 
 {
-	return;
+    return;
 }
 
 
