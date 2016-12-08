@@ -80,6 +80,10 @@ void *mm_malloc(size_t size)
             header += heap[header]/8 + 2;
         }
     }
+    if (header == size_of_heap - 1){
+        heap[header] = (size_t) mem_sbrk(size_of_heap);
+        size_of_heap = size_of_heap  * 2; 
+    }
     return (void*)-1;
 }
 
