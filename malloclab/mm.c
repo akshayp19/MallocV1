@@ -18,7 +18,7 @@
 #include "mm.h"
 #include "memlib.h"
 
-size_t* heap_start;
+int size_of_heap;
 
 /*********************************************************
  * NOTE TO STUDENTS: Before you do anything else, please
@@ -46,10 +46,9 @@ team_t team = {
  */
 int mm_init(void)
 {
-    size_t heap_start = 0;
-    //Check to see if there is enough memory space to initialize
+    //Find large area of available space. If enough, set equal to size_of_heap. If not, return -1.
+    size_t heap[size_of_heap];
     return 0;
-    //return 0;
 }
 
 /* 
@@ -58,14 +57,24 @@ int mm_init(void)
  */
 void *mm_malloc(size_t size)
 {
-    int newsize = ALIGN(size + SIZE_T_SIZE);
+    /*int newsize = ALIGN(size + SIZE_T_SIZE);
     void *p = mem_sbrk(newsize);
     if (p == (void *)-1)
     return NULL;
     else {
         *(size_t *)p = size;
         return (void *)((char *)p + SIZE_T_SIZE);
+    }*/
+    int i = 0;
+    while(i<size_of_heap){
+        if(heap[i]%8 == 0 && (heap[i]/8) >= size){//if heap is free and large enough
+            heap[i] = heap[i] + 1;//mark header as allocated
+            heap[i + heap[i]/8 + 1] = heap[i];//mark footer as allocated
+            return (void*)(heap + i + 1);//return pointer to first block
+        }else{
+        }
     }
+    return -1;
 }
 
 /*
@@ -73,6 +82,19 @@ void *mm_malloc(size_t size)
  */
 void mm_free(void *ptr)
 {
+    size_t* header = (size_t*)ptr - 1;
+    size_t* footer = header + *header/8 + 1
+    if(*header %8 == 1)//if allocated
+        *header--;
+        *footer--;
+    if (*(header-1) %8 == 0)//If previous block is free
+        header = header - *(header-1)/8 - 2;//move header to the header of the previous block
+        *header += *footer + 16;//Increment the header's size val to include both blocks and consumed footer/header.
+        *footer = *header;//make footer match
+    if (*(footer+1) %8 == 0)//If next block is free
+        footer = footer + *(footer+1)/8 + 2//move footer to the footer of the next block
+        *header += *footer + 16;
+        *footer = *header;    
 }
 
 /*
