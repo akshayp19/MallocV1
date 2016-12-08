@@ -65,16 +65,21 @@ void *mm_malloc(size_t size)
         *(size_t *)p = size;
         return (void *)((char *)p + SIZE_T_SIZE);
     }*/
-    int i = 0;
-    while(i<size_of_heap){
+    int header = 0;
+    while(header<size_of_heap){
+        footer = header + heap[header]/8 + 1;
         if(heap[i]%8 == 0 && (heap[i]/8) >= size){//if heap is free and large enough
-            heap[i] = heap[i] + 1;//mark header as allocated
-            heap[i + heap[i]/8 + 1] = heap[i];//mark footer as allocated
-            return (void*)(heap + i + 1);//return pointer to first block
+            heap[header] = size + 1;//mark header as allocated, set to new size
+            heap[i + size/8 + 1] = heap[header];//create new footer, same as header
+            heap[i + size/8 + 2] = heap[footer] - size - 16;//create new header after new footer
+            heap[footer] = heap[i + size/8 + 2];//set old footer to equal new header
+            return (void*)(heap + header + 1);//return pointer to first block
+            //[80][ ][ ][ ][ ][ ][80] -> [33][ ][ ][33][16][ ][16], for example
         }else{
+            header += heap[header]/8 + 2;
         }
     }
-    return -1;
+    return (void*)-1;
 }
 
 /*
