@@ -40,14 +40,14 @@ team_t team = {
     /* Third member's github username (leave blank if none) */
     "anonymouse123e"
 };
-
+size_t* heap;
 /* 
  * mm_init - initialize the malloc package.
  */
 int mm_init(void)
 {
     //Find large area of available space. If enough, set equal to size_of_heap. If not, return -1.
-    size_t heap[size_of_heap];
+    heap[size_of_heap];
     return 0;
 }
 
@@ -65,6 +65,7 @@ void *mm_malloc(size_t size)
         *(size_t *)p = size;
         return (void *)((char *)p + SIZE_T_SIZE);
     }*/
+    int footer;
     int header = 0;
     while(header<size_of_heap){
         footer = header + heap[header]/8 + 1;
@@ -88,7 +89,7 @@ void *mm_malloc(size_t size)
 void mm_free(void *ptr)
 {
     size_t* header = (size_t*)ptr - 1;
-    size_t* footer = header + *header/8 + 1
+    size_t* footer = header + *header/8 + 1;
     if(*header %8 == 1)//if allocated
         *header--;
         *footer--;
@@ -97,7 +98,7 @@ void mm_free(void *ptr)
         *header += *footer + 16;//Increment the header's size val to include both blocks and consumed footer/header.
         *footer = *header;//make footer match
     if (*(footer+1) %8 == 0)//If next block is free
-        footer = footer + *(footer+1)/8 + 2//move footer to the footer of the next block
+        footer = footer + *(footer+1)/8 + 2;//move footer to the footer of the next block
         *header += *footer + 16;
         *footer = *header;    
 }
