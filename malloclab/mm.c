@@ -125,14 +125,12 @@ void *mm_realloc(void *ptr, size_t size)
     memcpy(newptr, oldptr, copySize);
     mm_free(oldptr);
     return newptr;*/
-    if (*ptr == NULL)
+    if (ptr == NULL)
     {
         mm_malloc(size);
     }else if (size == 0)
     {
         mm_free(ptr);
-    }else{
-        
     }
 
 }
