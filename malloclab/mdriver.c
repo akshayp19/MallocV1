@@ -390,7 +390,7 @@ static int add_range(range_t **ranges, char *lo, int size,
         malloc_error(tracenum, opnum, msg);
         return 0;
     }
-
+  
     /* The payload must lie within the extent of the heap */
     if ((lo < (char *)mem_heap_lo()) || (lo > (char *)mem_heap_hi()) || 
 	(hi < (char *)mem_heap_lo()) || (hi > (char *)mem_heap_hi())) {

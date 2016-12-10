@@ -18,7 +18,7 @@
 #include "mm.h"
 #include "memlib.h"
 
-int size_of_heap = 1000; 
+int size_of_heap = 1000;
 
 /*********************************************************
  * NOTE TO STUDENTS: Before you do anything else, please
@@ -67,7 +67,7 @@ void *mm_malloc(size_t size)
     }*/
     int footer;
     int header = 0;
-    while(header < 1000){
+    while(header < size_of_heap){
         footer = 0;//header + heap[header]/8 + 1;
         if(heap[header]%8 == 0 && (heap[header]/8) >= size){//if heap is free and large enough
             heap[header] = size + 1;//mark header as allocated, set to new size
