@@ -18,7 +18,9 @@
 #include "mm.h"
 #include "memlib.h"
 
-int size_of_heap = 1000;
+#define DSIZE 8
+
+int size_of_heap;
 
 /*********************************************************
  * NOTE TO STUDENTS: Before you do anything else, please
@@ -42,17 +44,48 @@ team_t team = {
 };
 size_t* heap;
 void * actualHeap;
+
+size_t* coalesce(size_t* header){
+    if(*header % DSIZE == 0){
+        if (*(header-1) % DSIZE == 0){//If previous block is free
+            header = header - *(header-1)/DSIZE - 2;//move header to the header of the previous block
+            *header += *footer + 2*DSIZE;//Increment the header's size val to include both blocks and consumed footer/header.
+            *footer = *header;//make footer match
+        }
+        if (*(footer+1) % DSIZE == 0){//If next block is free
+            footer = footer + *(footer+1)/DSIZE + 2;//move footer to the footer of the next block
+            *header += *footer + 2*DSIZE;
+            *footer = *header;    
+        }
+    }
+    return header;
+}
+
+size_t* extend_heap(size_t dwords){//helper function to extend heap.
+    size_t* next = (size_t*)mem_sbrk(dwords*DSIZE + 2*DSIZE);
+    if(next == (size_t*)-1)
+        return -1;
+    //[1][1][33][ ][ ][33][1] -> [1][1][33][ ][ ][33][1][n][ ][ ][ ] for dwords = 2
+    //modify the last dwords + 3 entries in the heap. Set last one to epilogue, first one to header,
+    //second-to-last to footer.
+    *(next+dwords+1) = 1;//set last item to epilogue.
+    *(next-1) = dwords*DSIZE;//set previous epilogue to new header, not allocated.
+    *(next+dwords) = *(next-1);//set new footer equal to new header.
+    return coalesce(next-1);
+}
+
 /* 
  * mm_init - initialize the malloc package.
  */
 int mm_init(void)
 {
-    //Find large area of available space. If enough, set equal to size_of_heap. If not, return -1.
-    heap = malloc(size_of_heap); //[size_of_heap];
-
-    actualHeap = mem_sbrk(size_of_heap * sizeof(size_t));
-
-
+    size_t* heap = (size_t*)mem_sbrk(3*DSIZE);
+    if(heap == (size_t*)-1)
+        return -1;
+    size_of_heap = 3;
+    heap[0] = 1;//Prologue header = 0 size, allocated
+    heap[1] = 1;//Prologue footer = 0 size, allocated
+    heap[2] = 1;//Epilogue header = 0 size, allocated
     return 0;
 }
 
@@ -62,49 +95,41 @@ int mm_init(void)
  */
 void *mm_malloc(size_t size)
 {
-    /*int newsize = ALIGN(size + SIZE_T_SIZE);
-    void *p = mem_sbrk(newsize);
-    if (p == (void *)-1)
-    return NULL;
-    else {
-        *(size_t *)p = size;
-        return (void *)((char *)p + SIZE_T_SIZE);
-    }*/
     int footer = 0;
     int header = 0;
     while(header < size_of_heap){
-        //footer = 0; //header + heap[header]/8 + 1;
-        //printf("%s\t", "heap header:");
-        //printf("%d\n", heap[header]/8);
-        if(heap[header]%8 == 0 && (heap[header]/8) >= size){//if heap is free and large enough
-            heap[header] = size + 1;//mark header as allocated, set to new size
-            //printf("%d\n", heap[header]%8);
-            //printf("%s\t", "heap[header]:");
-            //printf("%zu\n", heap[header]);
-            footer = header + size/8 +1; //sets footer to size/8 away + 1 more
-            heap[footer] = heap[header];//create new footer, same as header
-            //printf("%s\t", "heap[footer]:");
-            //printf("%zu\n", heap[footer]);
-            heap[header + size/8 + 2] = heap[footer] - size - 1;//create new header after footer & set allocate to 0
-            //printf("%zu\n", heap[footer] - size - 1);
-            heap[footer + 1] = heap[header + size/8 + 2];//set footer + 1 equal new header
-            
-            //printf("%s\t", "heap[header+1]:");
-            //printf("%zu\n", (heap[header+1]) + 8);
-            //size_of_heap++;
-            return (void*)(heap[header + 1] + 8);//return pointer to first block
-            //[80][ ][ ][ ][ ][ ][80] -> [33][ ][ ][33][16][ ][16], for example
+        footer = header + heap[header]/DSIZE + 1;
+        if(heap[header]%DSIZE == 0){//if block is free
+            if(heap[header] == size){//and exactly the right size
+                heap[header]++;
+                heap[footer]++;
+                return (void*)(heap + header + 1);//return pointer to first block
+            }
+            else if(heap[header] >= size+2*DSIZE){//or large enough
+                header2 = header + size/DSIZE + 2;
+                footer2 = footer;
+                footer = head + size/DSIZE + 1//to eliminate conufusion, these are the locations of the headers and footers.
+                
+                heap[header] = size + 1;//block 1 is size bytes, allocated
+                heap[footer] = heap[header];//footer = header
+                heap[footer2] = heap[footer2] - size - 2*DSIZE;//shrink second block by the size of block 1, and then make room for new header+footer
+                heap[header2] = heap[footer2];//footer2 = header2
+                
+                return (void*)(heap + header + 1);//return pointer to first block
+                //[80][ ][ ][ ][ ][ ][80] -> [33][ ][ ][33][16][ ][16], for example
+            }
         }
-        else{
-
-            header += (header/8) + 2;
-        }
+        header = footer + 1;
     }
-    if (header == size_of_heap - 1){
-        actualHeap = mem_sbrk(size_of_heap);
-        size_of_heap = size_of_heap  * 2; 
+    *size_t loc = extend_heap(size/DSIZE);
+    if(loc == (size_t*)-1){
+        return NULL;
     }
-    return (void*)-1;
+    else{
+        *loc++;//mark header as allocated
+        *(loc + *loc/DSIZE +1)++;//mark footer as allocated
+    }
+    return loc;
 }
 
 /*
@@ -114,17 +139,11 @@ void mm_free(void *ptr)
 {
     size_t* header = (size_t*)ptr - 1;
     size_t* footer = header + *header/8 + 1;
-    if(*header %8 == 1)//if allocated
-        *header--;
+    if(*header %8 == 1){//if allocated
+        *header--;//deallocate
         *footer--;
-    if (*(header-1) %8 == 0)//If previous block is free
-        header = header - *(header-1)/8 - 2;//move header to the header of the previous block
-        *header += *footer + 16;//Increment the header's size val to include both blocks and consumed footer/header.
-        *footer = *header;//make footer match
-    if (*(footer+1) %8 == 0)//If next block is free
-        footer = footer + *(footer+1)/8 + 2;//move footer to the footer of the next block
-        *header += *footer + 16;
-        *footer = *header;    
+    }
+    coalesce(header);
 }
 
 /*
