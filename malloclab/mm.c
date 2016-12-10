@@ -46,6 +46,7 @@ size_t* heap;
 void * actualHeap;
 
 size_t* coalesce(size_t* header){
+    size_t* footer;
     if(*header % DSIZE == 0){
         if (*(header-1) % DSIZE == 0){//If previous block is free
             header = header - *(header-1)/DSIZE - 2;//move header to the header of the previous block
@@ -97,6 +98,8 @@ void *mm_malloc(size_t size)
 {
     int footer = 0;
     int header = 0;
+    int header2 = 0;
+    int footer2 = 0;
     while(header < size_of_heap){
         footer = header + heap[header]/DSIZE + 1;
         if(heap[header]%DSIZE == 0){//if block is free
@@ -108,8 +111,8 @@ void *mm_malloc(size_t size)
             else if(heap[header] >= size+2*DSIZE){//or large enough
                 header2 = header + size/DSIZE + 2;
                 footer2 = footer;
-                footer = head + size/DSIZE + 1//to eliminate conufusion, these are the locations of the headers and footers.
-                
+                footer = header + size/DSIZE + 1;//to eliminate conufusion, these are the locations of the headers and footers.
+                //line above was head + size/DSIZE s1 before
                 heap[header] = size + 1;//block 1 is size bytes, allocated
                 heap[footer] = heap[header];//footer = header
                 heap[footer2] = heap[footer2] - size - 2*DSIZE;//shrink second block by the size of block 1, and then make room for new header+footer
@@ -121,13 +124,13 @@ void *mm_malloc(size_t size)
         }
         header = footer + 1;
     }
-    *size_t loc = extend_heap(size/DSIZE);
+    size_t * loc = extend_heap(size/DSIZE);// this was at first * size_t but compiler didnt read that right
     if(loc == (size_t*)-1){
         return NULL;
     }
     else{
-        *loc++;//mark header as allocated
-        *(loc + *loc/DSIZE +1)++;//mark footer as allocated
+        *loc = *loc + 1;//mark header as allocated
+        *(loc + *loc/DSIZE +1) = *(loc + *loc/DSIZE +1) + 1;//mark footer as allocated
     }
     return loc;
 }
@@ -140,8 +143,8 @@ void mm_free(void *ptr)
     size_t* header = (size_t*)ptr - 1;
     size_t* footer = header + *header/8 + 1;
     if(*header %8 == 1){//if allocated
-        *header--;//deallocate
-        *footer--;
+        *header = *header-1;//deallocate
+        *footer = *footer-1;
     }
     coalesce(header);
 }
@@ -170,6 +173,8 @@ void *mm_realloc(void *ptr, size_t size)
     }else if (size == 0)
     {
         mm_free(ptr);
+    }else{
+        return;
     }
 
 }
