@@ -48,6 +48,8 @@ int mm_init(void)
 {
     //Find large area of available space. If enough, set equal to size_of_heap. If not, return -1.
     heap = malloc(size_of_heap); //[size_of_heap];
+    void * actualHeap = mem_sbrk(size_of_heap * sizeof(size_t));
+
     return 0;
 }
 
@@ -89,7 +91,7 @@ void *mm_malloc(size_t size)
         }
     }
     if (header == size_of_heap - 1){
-        heap[header] = (size_t) mem_sbrk(size_of_heap);
+        actualHeap = mem_sbrk(size_of_heap);
         size_of_heap = size_of_heap  * 2; 
     }
     return (void*)-1;
