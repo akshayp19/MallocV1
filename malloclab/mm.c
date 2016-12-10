@@ -18,7 +18,7 @@
 #include "mm.h"
 #include "memlib.h"
 
-int size_of_heap;
+int size_of_heap = 1000; 
 
 /*********************************************************
  * NOTE TO STUDENTS: Before you do anything else, please
@@ -67,7 +67,7 @@ void *mm_malloc(size_t size)
     }*/
     int footer;
     int header = 0;
-    while(header < 100000000){
+    while(header < 1000){
         footer = 0;//header + heap[header]/8 + 1;
         if(heap[header]%8 == 0 && (heap[header]/8) >= size){//if heap is free and large enough
             heap[header] = size + 1;//mark header as allocated, set to new size
@@ -79,7 +79,8 @@ void *mm_malloc(size_t size)
             heap[header + size/8 + 2] = heap[footer] - size - 16;//create new header after new footer
             heap[footer] = heap[header + size/8 + 2];//set old footer to equal new header
             //printf("%s\t", "heap[header+1]:");
-            //printf("%lu\n", sizeof(heap[header+1]));
+            //printf("%lu\n", (heap[header+1]) + 8);
+            size_of_heap++;
             return (void*)(heap[header + 1] + 8);//return pointer to first block
             //[80][ ][ ][ ][ ][ ][80] -> [33][ ][ ][33][16][ ][16], for example
         }

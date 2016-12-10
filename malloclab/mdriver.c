@@ -381,6 +381,8 @@ static int add_range(range_t **ranges, char *lo, int size,
 
     assert(size > 0);
 
+    //printf("%s\t", "lo");
+    //printf("%zu\n", lo);
     /* Payload addresses must be ALIGNMENT-byte aligned */
     if (!IS_ALIGNED(lo)) {
 	sprintf(msg, "Payload address (%p) not aligned to %d bytes", 
