@@ -47,7 +47,7 @@ size_t* heap;
 int mm_init(void)
 {
     //Find large area of available space. If enough, set equal to size_of_heap. If not, return -1.
-    heap[size_of_heap];
+    heap = malloc(size_of_heap); //[size_of_heap];
     return 0;
 }
 
@@ -67,16 +67,23 @@ void *mm_malloc(size_t size)
     }*/
     int footer;
     int header = 0;
-    while(header<size_of_heap){
-        footer = header + heap[header]/8 + 1;
+    while(header < 100000){
+        footer = 0;//header + heap[header]/8 + 1;
         if(heap[header]%8 == 0 && (heap[header]/8) >= size){//if heap is free and large enough
             heap[header] = size + 1;//mark header as allocated, set to new size
+            //printf("%s\t", "heap[header]:");
+            //printf("%zu\t", heap[header]);
             heap[header + size/8 + 1] = heap[header];//create new footer, same as header
+            //printf("%s\t", "heap[footer]:");
+            //printf("%zu\n", heap[footer]);
             heap[header + size/8 + 2] = heap[footer] - size - 16;//create new header after new footer
             heap[footer] = heap[header + size/8 + 2];//set old footer to equal new header
-            return (void*)(heap + header + 1);//return pointer to first block
+            //printf("%s\t", "heap[header+1]:");
+            //printf("%lu\n", sizeof(heap[header+1]));
+            return (void*)(heap[header + 1] + 8);//return pointer to first block
             //[80][ ][ ][ ][ ][ ][80] -> [33][ ][ ][33][16][ ][16], for example
-        }else{
+        }
+        else{
             header += heap[header]/8 + 2;
         }
     }
