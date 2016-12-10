@@ -46,7 +46,7 @@ size_t* heap;
 void * actualHeap;
 
 size_t* coalesce(size_t* header){
-    size_t* footer;
+    size_t* footer = header;
     if(*header % DSIZE == 0){
         if (*(header-1) % DSIZE == 0){//If previous block is free
             header = header - *(header-1)/DSIZE - 2;//move header to the header of the previous block
@@ -56,7 +56,7 @@ size_t* coalesce(size_t* header){
         if (*(footer+1) % DSIZE == 0){//If next block is free
             footer = footer + *(footer+1)/DSIZE + 2;//move footer to the footer of the next block
             *header += *footer + 2*DSIZE;
-            *footer = *header;    
+            *footer = *header;
         }
     }
     return header;
@@ -65,7 +65,7 @@ size_t* coalesce(size_t* header){
 size_t* extend_heap(size_t dwords){//helper function to extend heap.
     size_t* next = (size_t*)mem_sbrk(dwords*DSIZE + 2*DSIZE);
     if(next == (size_t*)-1)
-        return -1;
+        return (size_t*) -1;
     //[1][1][33][ ][ ][33][1] -> [1][1][33][ ][ ][33][1][n][ ][ ][ ] for dwords = 2
     //modify the last dwords + 3 entries in the heap. Set last one to epilogue, first one to header,
     //second-to-last to footer.
@@ -106,6 +106,7 @@ void *mm_malloc(size_t size)
             if(heap[header] == size){//and exactly the right size
                 heap[header]++;
                 heap[footer]++;
+               // printf("%s\n", "hi");
                 return (void*)(heap + header + 1);//return pointer to first block
             }
             else if(heap[header] >= size+2*DSIZE){//or large enough
