@@ -15,7 +15,7 @@
 #include <unistd.h>
 #include <string.h>
 #include "mm.h"
-#include "memlib.h"
+#include "marp.h"
 
 #define DSIZE 8
 
@@ -46,6 +46,7 @@ void print_heap(){
     for(i=0; i<mem_heapsize()/DSIZE; i++){
         printf("[%zx]", heap[i]);
     }
+    printf("\n");
 }
 
 size_t* coalesce(size_t* header){
@@ -94,7 +95,6 @@ int mm_init(void)
     heap[0] = 1;//Prologue header = 0 size, allocated
     heap[1] = 1;//Prologue footer = 0 size, allocated
     heap[2] = 1;//Epilogue header = 0 size, allocated
-    print_heap();
     return 0;
 }
 
@@ -200,4 +200,14 @@ void *mm_realloc(void *ptr, size_t size)
 void mm_checkheap(int verbose) 
 {
     return;
+}
+
+void main(){
+    mem_init();
+    mm_init();
+    void* a = mm_malloc(16);
+    void* b = mm_malloc(16);
+    print_heap();
+    mm_free(a);
+    print_heap();
 }
