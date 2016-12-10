@@ -101,6 +101,7 @@ void *mm_malloc(size_t size)
     int header2 = 0;
     int footer2 = 0;
     while(header < size_of_heap){
+        printf("%s\n", "hi");
         footer = header + heap[header]/DSIZE + 1;
         if(heap[header]%DSIZE == 0){//if block is free
             if(heap[header] == size){//and exactly the right size
