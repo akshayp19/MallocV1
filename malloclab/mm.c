@@ -51,6 +51,7 @@ void print_heap(){
 
 size_t* coalesce(size_t* header){
     size_t* footer = header + (*header)/DSIZE + 1;
+    //printf("%d\n", *header % DSIZE);
     if(*header % DSIZE == 0){
         if (*(header-1) % DSIZE == 0){//If previous block is free
             printf("a");
@@ -65,6 +66,7 @@ size_t* coalesce(size_t* header){
             *footer = *header;
         }
     }
+    //printf("%zx\n", header);
     return header;
 }
 
@@ -114,6 +116,7 @@ void *mm_malloc(size_t size)
     size_t footer2 = 0;
     while(header < mem_heapsize()/DSIZE){
         footer = header + heap[header]/DSIZE + 1;
+        //printf("%zu\n", heap[header]%DSIZE);
         if(heap[header]%DSIZE == 0){//if block is free
             if(heap[header] == size*DSIZE){//and exactly the right size
                 heap[header]++;
@@ -139,6 +142,7 @@ void *mm_malloc(size_t size)
         header = footer + 1;
     }
     //printf("Extending heap\n");
+    //printf("%zx\n", size);
     size_t * loc = extend_heap(size);// this was at first * size_t but compiler didnt read that right
     if(loc == (size_t*)-1){
         return (void*)-1;
@@ -147,7 +151,8 @@ void *mm_malloc(size_t size)
         *loc = *loc + 1;//mark header as allocated
         *(loc + (*loc)/DSIZE +1) = *(loc + (*loc)/DSIZE +1) + 1;//mark footer as allocated
     }
-    return (void*)(loc + 1);
+
+    return (void*)(loc + 1+8);
 }
 
 /*
