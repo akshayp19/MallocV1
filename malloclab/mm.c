@@ -15,7 +15,7 @@
 #include <unistd.h>
 #include <string.h>
 #include "mm.h"
-#include "marp.h"
+#include "memlib.h"
 
 #define DSIZE 8
 
@@ -96,6 +96,7 @@ int mm_init(void)
     heap[1] = 1;//Prologue footer = 0 size, allocated
     heap[2] = 1;//Epilogue header = 0 size, allocated
     return 0;
+    print_heap();
 }
 
 /* 
@@ -104,6 +105,9 @@ int mm_init(void)
  */
 void *mm_malloc(size_t size)
 {
+    size = (size-1)/DSIZE + 1;//Change size to be the number of array entries we need.
+    if(size % 2 == 1)//Make sure it's 16-byte aligned.
+        size++;
     size_t footer = 0;
     size_t header = 0;
     size_t header2 = 0;
@@ -111,21 +115,21 @@ void *mm_malloc(size_t size)
     while(header < mem_heapsize()/DSIZE){
         footer = header + heap[header]/DSIZE + 1;
         if(heap[header]%DSIZE == 0){//if block is free
-            if(heap[header] == size && size%(2*DSIZE) == 0){//and exactly the right size
+            if(heap[header] == size*DSIZE){//and exactly the right size
                 heap[header]++;
                 heap[footer]++;
                 printf("Whoa! Lucky!\n");
                 return (void*)(heap + header + 1);//return pointer to first block
             }
-            else if(heap[header] >= size+2*DSIZE){//or large enough
+            else if(heap[header] >= (size+4)*DSIZE){//or large enough
                 printf("Okay. Cool.\n");
-                header2 = header + size/DSIZE + 2;
+                header2 = header + size + 2;
                 footer2 = footer;
-                footer = header + size/DSIZE + 1;//to eliminate conufusion, these are the locations of the headers and footers.
+                footer = header + size + 1;//to eliminate conufusion, these are the locations of the headers and footers.
                 //line above was head + size/DSIZE s1 before
-                heap[header] = size + 1;//block 1 is size bytes, allocated
+                heap[header] = size*DSIZE + 1;//block 1 is size bytes, allocated
                 heap[footer] = heap[header];//footer = header
-                heap[footer2] = heap[footer2] - size - 2*DSIZE;//shrink second block by the size of block 1, and then make room for new header+footer
+                heap[footer2] = heap[footer2] - (size+2)*DSIZE;//shrink second block by the size of block 1, and then make room for new header+footer
                 heap[header2] = heap[footer2];//footer2 = header2
                 
                 return (void*)(heap + header + 1);//return pointer to first block
@@ -135,7 +139,7 @@ void *mm_malloc(size_t size)
         header = footer + 1;
     }
     //printf("Extending heap\n");
-    size_t * loc = extend_heap(size/DSIZE);// this was at first * size_t but compiler didnt read that right
+    size_t * loc = extend_heap(size);// this was at first * size_t but compiler didnt read that right
     if(loc == (size_t*)-1){
         return (void*)-1;
     }
@@ -143,7 +147,7 @@ void *mm_malloc(size_t size)
         *loc = *loc + 1;//mark header as allocated
         *(loc + (*loc)/DSIZE +1) = *(loc + (*loc)/DSIZE +1) + 1;//mark footer as allocated
     }
-    return (void*)loc;
+    return (void*)(loc + 1);
 }
 
 /*
@@ -159,6 +163,8 @@ void mm_free(void *ptr)
         *footer = *footer-1;
     }
     coalesce(header);
+
+    print_heap();
 }
 
 /*
@@ -200,14 +206,4 @@ void *mm_realloc(void *ptr, size_t size)
 void mm_checkheap(int verbose) 
 {
     return;
-}
-
-void main(){
-    mem_init();
-    mm_init();
-    void* a = mm_malloc(16);
-    void* b = mm_malloc(16);
-    print_heap();
-    mm_free(a);
-    print_heap();
 }
