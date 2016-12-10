@@ -80,7 +80,7 @@ size_t* extend_heap(size_t dwords){//helper function to extend heap.
  */
 int mm_init(void)
 {
-    size_t* heap = (size_t*)mem_sbrk(3*DSIZE);
+    heap = (size_t*)mem_sbrk(3*DSIZE);
     if(heap == (size_t*)-1)
         return -1;
     size_of_heap = 3;
@@ -101,7 +101,6 @@ void *mm_malloc(size_t size)
     int header2 = 0;
     int footer2 = 0;
     while(header < size_of_heap){
-        printf("%s\n", "hi");
         footer = header + heap[header]/DSIZE + 1;
         if(heap[header]%DSIZE == 0){//if block is free
             if(heap[header] == size){//and exactly the right size
