@@ -51,18 +51,15 @@ void print_heap(){
 
 size_t* coalesce(size_t* header){
     size_t* footer = header + (*header)/DSIZE + 1;
-    long int dist = header - heap;
-    printf("Coalescing at %li\n", dist);
-    if(dist == 3){
-        printf("boo\n");
-        printf("[%zx][%zx][%zx]\n", heap[0], heap[1], heap[2]);
-    }
+    printf("Coalescing at %li\n", header - heap);
+    //printf("%d\n", *header % DSIZE);
     if(*header % DSIZE == 0){
         if (dist == 3){
         } 
         if (*(header-1) % DSIZE == 0){//If previous block is free
             if (dist == 3) printf("boo\n");
             //printf("a");
+            //printf("%ld\n", header - heap);
             header = header - *(header-1)/DSIZE - 2;//move header to the header of the previous block
             *header += *footer + 2*DSIZE;//Increment the header's size val to include both blocks and consumed footer/header.
             *footer = *header;//make footer match
@@ -75,7 +72,6 @@ size_t* coalesce(size_t* header){
             *footer = *header;
         }
     }
-    if(dist == 3) printf("WE DIDN'T CRASH PEEPS\n");
     return header;
 }
 
@@ -218,7 +214,12 @@ void *mm_realloc(void *ptr, size_t size)
         mm_free(ptr);
         return (void*)-1;
     }else{
-        return (void*)-1;
+        //void * oldptr = ptr;
+        void * newptr;
+        newptr = mm_malloc(size);
+        memcpy(newptr, ptr, (size_t) (ptr - 2);
+        mm_free(ptr);
+        return newptr;
     }
 
 }
