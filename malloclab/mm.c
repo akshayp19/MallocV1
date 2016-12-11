@@ -51,22 +51,31 @@ void print_heap(){
 
 size_t* coalesce(size_t* header){
     size_t* footer = header + (*header)/DSIZE + 1;
-    //printf("%d\n", *header % DSIZE);
+    long int dist = header - heap;
+    printf("Coalescing at %li\n", dist);
+    if(dist == 3){
+        printf("boo\n");
+        printf("[%zx][%zx][%zx]\n", heap[0], heap[1], heap[2]);
+    }
     if(*header % DSIZE == 0){
+        if (dist == 3){
+        } 
         if (*(header-1) % DSIZE == 0){//If previous block is free
+            if (dist == 3) printf("boo\n");
             //printf("a");
             header = header - *(header-1)/DSIZE - 2;//move header to the header of the previous block
             *header += *footer + 2*DSIZE;//Increment the header's size val to include both blocks and consumed footer/header.
             *footer = *header;//make footer match
         }
         if (*(footer+1) % DSIZE == 0){//If next block is free
+            if (dist == 3) printf("baa\n");
             //printf("b");
             footer = footer + *(footer+1)/DSIZE + 2;//move footer to the footer of the next block
             *header += *footer + 2*DSIZE;
             *footer = *header;
         }
     }
-    //printf("%zx\n", header);
+    if(dist == 3) printf("WE DIDN'T CRASH PEEPS\n");
     return header;
 }
 
@@ -112,7 +121,7 @@ int mm_init(void)
  */
 void *mm_malloc(size_t size)
 {
-    //printf("Doing the malloc: %zx\n", size);
+    printf("Doing the malloc: %zx\n", size);
     size_t asize = (size-1)/DSIZE + 1;//Calculate the number of array entries we need.
     if(asize % 2 == 1)//Make sure it's 16-byte aligned.
         asize++;
@@ -120,19 +129,18 @@ void *mm_malloc(size_t size)
     size_t header = 0;
     size_t header2 = 0;
     size_t footer2 = 0;
-    while(header < mem_heapsize()/DSIZE){
-        footer = header + heap[header]/DSIZE + 1;
+    while(footer < mem_heapsize()/DSIZE){
         //printf("%zu\n", heap[header]%DSIZE);
         if(heap[header]%DSIZE == 0){//if block is free
             if(heap[header] == size*DSIZE){//and exactly the right size
                 heap[header]++;
                 heap[footer]++;
-                //printf("Whoa! Lucky!\n");
+                printf("Whoa! Lucky!\n");
                 return (void*)(heap + header + 1);//return pointer to first block
             }
             else if(heap[header] >= (asize+4)*DSIZE){//or large enough
-                //printf("Okay. Cool.\n");
-                //print_heap();
+                printf("Okay. Cool.\n");
+                printf("%zx\n", mem_heapsize()/DSIZE - footer);
                 //printf("%zx\n", heap[footer]);
                 header2 = header + asize + 2;
                 footer2 = footer;
@@ -142,17 +150,18 @@ void *mm_malloc(size_t size)
                 heap[footer] = heap[header];//footer = header
                 heap[footer2] = heap[footer2] - (asize+2)*DSIZE;//shrink second block by the size of block 1, and then make room for new header+footer
                 //printf("%zx\n", heap[footer2]);
+                printf("Yey. Nice.\n");
                 heap[header2] = heap[footer2];//footer2 = header2
-                //print_heap();
                 return (void*)(heap + header + 1);//return pointer to first block
                 //[80][ ][ ][ ][ ][ ][80] -> [33][ ][ ][33][16][ ][16], for example
             }
         }
         header = footer + 1;
+        footer = header + heap[header]/DSIZE + 1;
     }
     size_t * loc = extend_heap(asize);// this was at first * size_t but compiler didnt read that right
     //printf("%zx\n", *(size_t*)0x80c29a8ed028);
-    //printf("Extending heap\n");
+    printf("Extending heap\n");
     //printf("%zx\n", size);
     if(loc == (size_t*)-1){
         return (void*)-1;
@@ -170,8 +179,8 @@ void *mm_malloc(size_t size)
  */
 void mm_free(void *ptr)
 {
-    //printf("%s\n", "FREE AT LAST\n");
     size_t* header = (size_t*)ptr - 1;
+    //printf("FREE AT LAST\n");
     size_t* footer = header + *header/8 + 1;
     if(*header %8 == 1){//if allocated
         *header = *header-1;//deallocate
@@ -199,7 +208,7 @@ void *mm_realloc(void *ptr, size_t size)
     memcpy(newptr, oldptr, copySize);
     mm_free(oldptr);
     return newptr;*/
-    printf("REALLOC");
+    printf("REALLOC\n");
     if (ptr == NULL)
     {
         mm_malloc(size);
