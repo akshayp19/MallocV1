@@ -51,10 +51,12 @@ void print_heap(){
 
 size_t* coalesce(size_t* header){
     size_t* footer = header + (*header)/DSIZE + 1;
+
     //printf("%d\n", *header % DSIZE);
     if(*header % DSIZE == 0){
         if (*(header-1) % DSIZE == 0){//If previous block is free
             //printf("a");
+            printf("%ld\n", header - heap);
             header = header - *(header-1)/DSIZE - 2;//move header to the header of the previous block
             *header += *footer + 2*DSIZE;//Increment the header's size val to include both blocks and consumed footer/header.
             *footer = *header;//make footer match
