@@ -56,7 +56,7 @@ size_t* coalesce(size_t* header){
     if(*header % DSIZE == 0){
         if (*(header-1) % DSIZE == 0){//If previous block is free
             //printf("a");
-            printf("%ld\n", header - heap);
+            //printf("%ld\n", header - heap);
             header = header - *(header-1)/DSIZE - 2;//move header to the header of the previous block
             *header += *footer + 2*DSIZE;//Increment the header's size val to include both blocks and consumed footer/header.
             *footer = *header;//make footer match
@@ -211,7 +211,12 @@ void *mm_realloc(void *ptr, size_t size)
         mm_free(ptr);
         return (void*)-1;
     }else{
-        return (void*)-1;
+        //void * oldptr = ptr;
+        void * newptr;
+        newptr = mm_malloc(size);
+        memcpy(newptr, ptr, (size_t) newptr);
+        mm_free(ptr);
+        return newptr;
     }
 
 }
