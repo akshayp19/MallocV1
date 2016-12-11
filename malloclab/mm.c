@@ -214,7 +214,7 @@ void *mm_realloc(void *ptr, size_t size)
         //void * oldptr = ptr;
         void * newptr;
         newptr = mm_malloc(size);
-        memcpy(newptr, ptr, (size_t) newptr);
+        memcpy(newptr, ptr, (size_t) (ptr - 2);
         mm_free(ptr);
         return newptr;
     }
