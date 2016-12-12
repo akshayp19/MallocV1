@@ -51,13 +51,10 @@ void print_heap(){
 
 size_t* coalesce(size_t* header){
     size_t* footer = header + (*header)/DSIZE + 1;
-    printf("Coalescing at %li\n", header - heap);
+    //printf("Coalescing at %li\n", header - heap);
     //printf("%d\n", *header % DSIZE);
     if(*header % DSIZE == 0){
-        if (dist == 3){
-        } 
         if (*(header-1) % DSIZE == 0){//If previous block is free
-            if (dist == 3) printf("boo\n");
             //printf("a");
             //printf("%ld\n", header - heap);
             header = header - *(header-1)/DSIZE - 2;//move header to the header of the previous block
@@ -65,7 +62,6 @@ size_t* coalesce(size_t* header){
             *footer = *header;//make footer match
         }
         if (*(footer+1) % DSIZE == 0){//If next block is free
-            if (dist == 3) printf("baa\n");
             //printf("b");
             footer = footer + *(footer+1)/DSIZE + 2;//move footer to the footer of the next block
             *header += *footer + 2*DSIZE;
@@ -107,7 +103,7 @@ int mm_init(void)
     heap[1] = 1;//Prologue header = 0 size, allocated
     heap[2] = 1;//Prologue footer = 0 size, allocated
     heap[3] = 1;//Epilogue header = 0 size, allocated
-    print_heap();
+    //print_heap();
     return 0;
 }
 
@@ -117,26 +113,27 @@ int mm_init(void)
  */
 void *mm_malloc(size_t size)
 {
-    printf("Doing the malloc: %zx\n", size);
+    //printf("Doing the malloc: %zx\n", size);
     size_t asize = (size-1)/DSIZE + 1;//Calculate the number of array entries we need.
     if(asize % 2 == 1)//Make sure it's 16-byte aligned.
         asize++;
-    size_t footer = 0;
-    size_t header = 0;
+    size_t header = 3;
+    size_t footer = header + heap[header]/DSIZE + 1;
     size_t header2 = 0;
     size_t footer2 = 0;
-    while(footer < mem_heapsize()/DSIZE){
+    while(header < mem_heapsize()/DSIZE){
         //printf("%zu\n", heap[header]%DSIZE);
+        footer = header + heap[header]/DSIZE + 1;
         if(heap[header]%DSIZE == 0){//if block is free
-            if(heap[header] == size*DSIZE){//and exactly the right size
+            if(heap[header] >= asize*DSIZE && heap[header] < (asize+4)*DSIZE){//and exactly the right size
                 heap[header]++;
                 heap[footer]++;
-                printf("Whoa! Lucky!\n");
+                //printf("Whoa! Lucky!\n");
                 return (void*)(heap + header + 1);//return pointer to first block
             }
             else if(heap[header] >= (asize+4)*DSIZE){//or large enough
-                printf("Okay. Cool.\n");
-                printf("%zx\n", mem_heapsize()/DSIZE - footer);
+                //printf("Okay. Cool.\n");
+                //printf("%zx\n", mem_heapsize()/DSIZE - footer);
                 //printf("%zx\n", heap[footer]);
                 header2 = header + asize + 2;
                 footer2 = footer;
@@ -146,18 +143,17 @@ void *mm_malloc(size_t size)
                 heap[footer] = heap[header];//footer = header
                 heap[footer2] = heap[footer2] - (asize+2)*DSIZE;//shrink second block by the size of block 1, and then make room for new header+footer
                 //printf("%zx\n", heap[footer2]);
-                printf("Yey. Nice.\n");
+                //printf("Yey. Nice.\n");
                 heap[header2] = heap[footer2];//footer2 = header2
                 return (void*)(heap + header + 1);//return pointer to first block
                 //[80][ ][ ][ ][ ][ ][80] -> [33][ ][ ][33][16][ ][16], for example
             }
         }
         header = footer + 1;
-        footer = header + heap[header]/DSIZE + 1;
     }
     size_t * loc = extend_heap(asize);// this was at first * size_t but compiler didnt read that right
     //printf("%zx\n", *(size_t*)0x80c29a8ed028);
-    printf("Extending heap\n");
+    //printf("Extending heap\n");
     //printf("%zx\n", size);
     if(loc == (size_t*)-1){
         return (void*)-1;
@@ -204,24 +200,26 @@ void *mm_realloc(void *ptr, size_t size)
     memcpy(newptr, oldptr, copySize);
     mm_free(oldptr);
     return newptr;*/
-    printf("REALLOC\n");
+    //printf("REALLOC\n");
     if (ptr == NULL)
     {
-        mm_malloc(size);
-        return (void*)-1;
-    }else if (size == 0)
-    {
-        mm_free(ptr);
-        return (void*)-1;
+        return mm_malloc(size);
     }else{
-        //void * oldptr = ptr;
-        void * newptr;
-        newptr = mm_malloc(size);
-        memcpy(newptr, ptr, (size_t) (ptr - 2);
         mm_free(ptr);
-        return newptr;
+        if(!size) return(void*)-1;
+        size_t* header = (size_t*)ptr - 1;
+        void* newptr = (void*)(header + (*header)/DSIZE - *(header + (*header)/DSIZE + 1)/DSIZE);
+        header = (size_t*)newptr;
+        //Because of how  we implemented free, the above code will always give us the header of the new block's header after coalescing.
+        if(*(size_t*)newptr >= size){
+            newptr+=8;//Make newptr point to the block instead of its header.
+            (*header)++;
+            (*(header + (*header)/DSIZE + 1))++;
+        }else{
+            newptr = mm_malloc(size);
+        }
+        return memcpy(newptr, ptr, *(size_t*)(ptr-8));
     }
-
 }
 
 
