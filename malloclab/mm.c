@@ -1,13 +1,29 @@
 /*
- * mm-naive.c - The fastest, least memory-efficient malloc package.
- * 
- * In this naive approach, a block is allocated by simply incrementing
- * the brk pointer.  A block is pure payload. There are no headers or
- * footers.  Blocks are never coalesced or reused. Realloc is
- * implemented directly using mm_malloc and mm_free.
- *
- * NOTE TO STUDENTS: Replace this header comment with your own header
- * comment that gives a high level description of your solution.
+ We used the textbook to understand how to do it, but we utilized our own code.
+ 
+ Our heap is implemented as an array of size_ts, so that each entry in the array is 8 bytes.
+ Headers and footers are also single entries in the array. Additionally, since the heap must be
+ 16-byte aligned, blocks of memory exist as header/footer-capped sections of the array with length
+ divisible by two. Headers and footers store size values equivalent only to the number of bytes
+ betweeen them, such that a header and a footer right next to each other in memory would both have size
+ values of 0.
+
+ The heap begins as an array of size four, containing a blank entry, a prologue block, and an
+ epilogue header. New blocks are added only when required by malloc to utilize memory as efficiently
+ as possible. Malloc searches through every block in the array and, if it is free, checks the size.
+ Blocks within ~4 array items of the correct size are returned as-is. Larger blocks, which can be split
+ and have non-empty remainder blocks, are accordingly split to the exact size and returned. Free and
+ allocated blocks are right next to each other in memory - due to coalescing, every free block will be
+ surrounded on both sides by allocated blocks, but allocated blocks may have either free or allocated
+ blocks next to them.
+
+ Free simply checks to ensure that the block has been allocated, and then removes the allocated flags
+ on it. Then, it coalesces.
+
+ Realloc takes care of the boundary cases first, and then if neither ptr is NULL nore size is 0, it
+ will immediately free the area in memory. The area will automatically coalesce, and so if it is of the
+ correct size after coalescing, we will return the pointer to the same block's new header. Otherwise,
+ we will use malloc to find a proper-sized area.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,61 +49,43 @@ team_t team = {
     /* Second member's full name (leave blank if none) */
     "Erica Chio",
     /* Second member's github username (leave blank if none) */
-    "ericachio"
+    "ericachio",
     /* Third member's full name (leave blank if none) */
-    "Jason Gross"
+    "Jason Gross",
     /* Third member's github username (leave blank if none) */
     "anonymouse123e"
 };
 size_t* heap;
 
-void print_heap(){
-    int i;
-    for(i=0; i<mem_heapsize()/DSIZE; i++){
-        printf("[%zx]", heap[i]);
-    }
-    printf("\n");
-}
-
+//Coalesce is a helper function for when we need to merge free blocks.
 size_t* coalesce(size_t* header){
-    size_t* footer = header + (*header)/DSIZE + 1;
-    //printf("Coalescing at %li\n", header - heap);
-    //printf("%d\n", *header % DSIZE);
-    if(*header % DSIZE == 0){
-        if (*(header-1) % DSIZE == 0){//If previous block is free
-            //printf("a");
-            //printf("%ld\n", header - heap);
+    size_t* footer = header + (*header)/DSIZE + 1;//Find the footer.
+    if(*header % DSIZE == 0){//If the current block is free,
+        if (*(header-1) % DSIZE == 0){//and previous block is free
             header = header - *(header-1)/DSIZE - 2;//move header to the header of the previous block
             *header += *footer + 2*DSIZE;//Increment the header's size val to include both blocks and consumed footer/header.
             *footer = *header;//make footer match
         }
         if (*(footer+1) % DSIZE == 0){//If next block is free
-            //printf("b");
             footer = footer + *(footer+1)/DSIZE + 2;//move footer to the footer of the next block
-            *header += *footer + 2*DSIZE;
-            *footer = *header;
+            *header += *footer + 2*DSIZE;//Increment the header to include both blocks and consumed header/footer
+            *footer = *header;//make the footer match
         }
     }
-    return header;
+    return header;//this should be a pointer to the header of the coalesced block
 }
 
 size_t* extend_heap(size_t dwords){//helper function to extend heap.
     if(dwords%2 == 1)
         dwords++;//align to 16 bytes
     //printf("Extending the heap by %zx bytes.\n", dwords);
-    size_t* next = (size_t*)mem_sbrk(dwords*DSIZE + 2*DSIZE);
-    if(next == (size_t*)-1)
+    size_t* next = (size_t*)mem_sbrk(dwords*DSIZE + 2*DSIZE);//Extend the heap.
+    if(next == (size_t*)-1)//If the extension failed, return -1.
         return (size_t*)-1;
-    //[1][1][33][ ][ ][33][1] -> [1][1][33][ ][ ][33][1][n][ ][ ][ ] for dwords = 2
-    //modify the last dwords + 3 entries in the heap. Set last one to epilogue, first one to header,
-    //second-to-last to footer.
     *(next+dwords+1) = 1;//set last item to epilogue.
     *(next-1) = dwords*DSIZE;//set previous epilogue header to new header, not allocated.
     *(next+dwords) = *(next-1);//set new footer equal to new header.
-    int i;
-    for(i=0; i<dwords; i++){
-        *(next+i) = 0;
-    }
+
     return coalesce(next-1);
 }
 
@@ -108,8 +106,9 @@ int mm_init(void)
 }
 
 /* 
- * mm_malloc - Allocate a block by incrementing the brk pointer.
- *     Always allocate a block whose size is a multiple of the alignment.
+ * mm_malloc - Search through the heap. Return the first block of the appropriate size. 
+ * If the block is almost exactly the right size, just return it as-is. Otherwise, if it's
+ * considerably larger, split it and then return a perfectly-sized block.
  */
 void *mm_malloc(size_t size)
 {
@@ -117,9 +116,9 @@ void *mm_malloc(size_t size)
     size_t asize = (size-1)/DSIZE + 1;//Calculate the number of array entries we need.
     if(asize % 2 == 1)//Make sure it's 16-byte aligned.
         asize++;
-    size_t header = 3;
+    size_t header = 3;//Start after the prologue, set headers and footers.
     size_t footer = header + heap[header]/DSIZE + 1;
-    size_t header2 = 0;
+    size_t header2 = 0;//these are for if we have to split the block.
     size_t footer2 = 0;
     while(header < mem_heapsize()/DSIZE){
         //printf("%zu\n", heap[header]%DSIZE);
@@ -128,13 +127,10 @@ void *mm_malloc(size_t size)
             if(heap[header] >= asize*DSIZE && heap[header] < (asize+4)*DSIZE){//and exactly the right size
                 heap[header]++;
                 heap[footer]++;
-                //printf("Whoa! Lucky!\n");
                 return (void*)(heap + header + 1);//return pointer to first block
             }
             else if(heap[header] >= (asize+4)*DSIZE){//or large enough
-                //printf("Okay. Cool.\n");
-                //printf("%zx\n", mem_heapsize()/DSIZE - footer);
-                //printf("%zx\n", heap[footer]);
+
                 header2 = header + asize + 2;
                 footer2 = footer;
                 footer = header + asize + 1;//to eliminate conufusion, these are the locations of the headers and footers.
@@ -142,11 +138,9 @@ void *mm_malloc(size_t size)
                 heap[header] = asize*DSIZE + 1;//block 1 is size bytes, allocated
                 heap[footer] = heap[header];//footer = header
                 heap[footer2] = heap[footer2] - (asize+2)*DSIZE;//shrink second block by the size of block 1, and then make room for new header+footer
-                //printf("%zx\n", heap[footer2]);
-                //printf("Yey. Nice.\n");
+
                 heap[header2] = heap[footer2];//footer2 = header2
                 return (void*)(heap + header + 1);//return pointer to first block
-                //[80][ ][ ][ ][ ][ ][80] -> [33][ ][ ][33][16][ ][16], for example
             }
         }
         header = footer + 1;
@@ -187,20 +181,6 @@ void mm_free(void *ptr)
  */
 void *mm_realloc(void *ptr, size_t size)
 {
-    /*void *oldptr = ptr;
-    void *newptr;
-    size_t copySize;
-    
-    newptr = mm_malloc(size);
-    if (newptr == NULL)
-      return NULL;
-    copySize = *(size_t *)((char *)oldptr - SIZE_T_SIZE);
-    if (size < copySize)
-      copySize = size;
-    memcpy(newptr, oldptr, copySize);
-    mm_free(oldptr);
-    return newptr;*/
-    //printf("REALLOC\n");
     if (ptr == NULL)
     {
         return mm_malloc(size);
